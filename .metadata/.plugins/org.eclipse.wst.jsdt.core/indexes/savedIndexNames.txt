@@ -1,0 +1,7 @@
+INDEX VERSION 1.4+D:\Podaci Preneseno\Nemanja\Desktop\Faks\3. GODINA\Sesti semestar\Mrezno i distribuirano programiranje\ProjekatMDP\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+2234262404.index
+1720096785.index
+3989449464.index
+3966075537.index
+3461136891.index
+2710215910.index

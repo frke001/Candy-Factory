@@ -1,0 +1,11 @@
+USER_FILE_PATH = D:\\Podaci Preneseno\\Nemanja\\Desktop\\Faks\\3. GODINA\\Sesti semestar\\Mrezno i distribuirano programiranje\\ProjekatMDP\\Factory\\src\\main\\resources\\users.json
+FACTORY_USER_FILE_PATH = D:\\Podaci Preneseno\\Nemanja\\Desktop\\Faks\\3. GODINA\\Sesti semestar\\Mrezno i distribuirano programiranje\\ProjekatMDP\\Factory\\src\\main\\resources\\factory_users.json
+JEDIS_HOST = localhost
+MULTICAST_IP = 224.0.0.11
+MULTICAST_PORT = 20000
+KEYSTORE_PATH = D:\\Podaci Preneseno\\Nemanja\\Desktop\\Faks\\3. GODINA\\Sesti semestar\\Mrezno i distribuirano programiranje\\ProjekatMDP\\Factory\\src\\main\\resources\\keystore.jks
+KEYSTORE_PASSWORD = securemdp
+SECURE_SERVER_PORT = 8443
+ORDER_FILE_PATH = D:\\Podaci Preneseno\\Nemanja\\Desktop\\Faks\\3. GODINA\\Sesti semestar\\Mrezno i distribuirano programiranje\\ProjekatMDP\\Factory\\src\\main\\resources
+REGISTRY_PORT = 1099
+POLICY = D:\\Podaci Preneseno\\Nemanja\\Desktop\\Faks\\3. GODINA\\Sesti semestar\\Mrezno i distribuirano programiranje\\ProjekatMDP\\Distributor\\resources\\server_policyfile.txt

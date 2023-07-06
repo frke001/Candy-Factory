@@ -1,0 +1,30 @@
+package util;
+
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
+public class MyLogger {
+	
+	public static final Logger logger = Logger.getLogger(MyLogger.class.getName());
+	
+	static {
+		try {
+            FileHandler fileHandler = new FileHandler("mylog.log");
+            fileHandler.setLevel(Level.ALL);
+
+            SimpleFormatter formatter = new SimpleFormatter();
+            fileHandler.setFormatter(formatter);
+
+            logger.addHandler(fileHandler);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+	}
+
+	
+	public static void log(Level level, String message) {
+		logger.log(level,message);
+	}
+}

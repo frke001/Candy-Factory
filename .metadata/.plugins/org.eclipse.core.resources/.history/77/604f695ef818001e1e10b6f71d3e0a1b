@@ -1,0 +1,179 @@
+package controllers;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.concurrent.TimeoutException;
+
+import javax.mail.MessagingException;
+
+import org.unibl.etf.model.Order;
+import org.unibl.etf.model.Product;
+import org.unibl.etf.model.ProductOrder;
+import org.unibl.etf.service.ProductService;
+
+import com.fasterxml.jackson.databind.util.SimpleBeanPropertyDefinition;
+
+import exception.InvalidXMLException;
+import service.MailService;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
+import service.FactoryUserAuthenticationService;
+import service.OrderMQService;
+import util.ConfigUtil;
+
+public class ProcessOrderController implements Initializable {
+
+	@FXML
+	private Button acceptOrderButton;
+
+	@FXML
+	private Button getOrderButton;
+
+	@FXML
+	private TextField emailTextField;
+
+	@FXML
+	private TextField usernameTextField;
+
+	@FXML
+	private TableColumn<ProductOrder, String> nameOrderItemColumn;
+
+	@FXML
+	private TableView<ProductOrder> orderTable;
+
+	@FXML
+	private TableColumn<ProductOrder, Integer> quantityOrderItemColumn;
+
+	@FXML
+	private Button rejectOrderButton;
+
+	private FactoryUserAuthenticationService authenticationService;
+
+	private OrderMQService orderMQService;
+	
+	private Order order;
+	
+	private MailService mailService;
+
+	private ObservableList<ProductOrder> orderProducts;
+	
+	//private ProductService productService;
+
+	public ProcessOrderController(FactoryUserAuthenticationService authenticationService) {
+		this.authenticationService = authenticationService;
+		orderMQService = new OrderMQService();
+		mailService = new MailService();
+		//productService = new ProductService();
+
+	}
+
+	@Override
+	public void initialize(URL arg0, ResourceBundle arg1) {
+
+		orderProducts = FXCollections.observableArrayList();
+
+		nameOrderItemColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+		quantityOrderItemColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+
+		orderTable.getItems().clear();
+		orderTable.setItems(orderProducts);
+	}
+
+	@FXML
+	void onAcceptOrderButton(ActionEvent event) {
+		if(order == null || "".equals(emailTextField.getText()) || "".equals(usernameTextField.getText())) {
+			alert("Greška", "Narudba nije preuzeta");
+			return;
+		} else
+			try {
+				order.setStatus(true);
+				if(authenticationService.sendOrderStatus(order.toString())) {
+					meesageBox("Narudžba", "Uspješno slanje statusa narudžbe");
+					mailService.sendMail(order);
+//					for(var el : order.getOrderItems()) {
+//						Product temProduct = productService.getProductById(el.getId());
+//						temProduct.setQuantity(temProduct.getQuantity() - el.getQuantity());
+//						productService.updateProduct(temProduct);
+//					}
+				}else {
+					alert("Greška", "Neuspješno slanje statusa narudžbe");
+				}
+			} catch (IOException | MessagingException e) {
+				e.printStackTrace();
+		}
+		order = null;
+		orderProducts.clear();
+		usernameTextField.clear();
+		emailTextField.clear();
+	}
+
+	@FXML
+	void onGetOrderButton(ActionEvent event) {
+		try {
+			this.order = orderMQService.consumeOrder();
+			if(order != null) {
+			orderProducts.clear();
+			orderProducts.setAll(order.getOrderItems());
+			usernameTextField.setText(order.getUser());
+			emailTextField.setText(order.getUserEmail());
+			}else {
+				meesageBox("Narudžba", "Ne postoji više narudžbi");
+			}			
+		} catch (IOException | TimeoutException ex) {
+			alert("Greška", "Greška sa preuzimanjem narudžbe");
+		}catch (InvalidXMLException ex) {
+			alert("Greška", ex.getMessage());
+		}
+
+	}
+
+	@FXML
+	void onRejectOrderButton(ActionEvent event) {
+		if(order == null || "".equals(emailTextField.getText()) || "".equals(usernameTextField.getText())) {
+			alert("Greška", "Narudba nije preuzeta");
+			return;
+		} else
+			try {
+				order.setStatus(false);
+				if(authenticationService.sendOrderStatus(order.toString())) {
+					meesageBox("Narudžba", "Uspješno slanje statusa narudžbe");
+					mailService.sendMail(order);
+				}else {
+					alert("Greška", "Neuspješno slanje statusa narudžbe");
+				}
+			} catch (IOException | MessagingException e) {
+				e.printStackTrace();
+		}
+		order = null;
+		orderProducts.clear();
+		usernameTextField.clear();
+		emailTextField.clear();
+	}
+
+	private void alert(String title, String message) {
+		Alert alert = new Alert(Alert.AlertType.ERROR);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
+	private void meesageBox(String title, String message) {
+		Alert alert = new Alert(Alert.AlertType.INFORMATION);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
+
+}

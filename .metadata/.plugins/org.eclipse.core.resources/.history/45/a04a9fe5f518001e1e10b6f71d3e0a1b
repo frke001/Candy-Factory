@@ -1,0 +1,178 @@
+package controllers;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+
+import javax.ws.rs.core.NewCookie;
+
+import org.unibl.etf.controller.ProductController;
+import org.unibl.etf.dao.ProductDao;
+import org.unibl.etf.model.Product;
+import org.unibl.etf.model.User;
+
+import service.MQService;
+import service.ProductService;
+import util.MyLogger;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.cell.PropertyValueFactory;
+import model.Order;
+import model.ProductOrder;
+
+public class ProductsController implements Initializable {
+	@FXML
+	private TableColumn<Product, Integer> idColumn;
+
+	@FXML
+	private TableColumn<Product, String> nameColumn;
+
+	@FXML
+	private Button orderButton;
+
+	@FXML
+	private TableColumn<Product, Double> priceColumn;
+
+	@FXML
+	private TableView<Product> productsTable;
+
+	@FXML
+	private TableColumn<Product, Integer> quantityColumn;
+
+	@FXML
+	private TableColumn<ProductOrder, Integer> quantityOrderItemColumn;
+
+	@FXML
+	private TableView<ProductOrder> orderTable;
+
+	@FXML
+	private TableColumn<ProductOrder, String> nameOrderItemColumn;
+
+	@FXML
+	private Button refreshButton;
+
+	@FXML
+	private TextArea promotionTextArea;
+
+	private ProductService productService;
+
+	public static ObservableList<Product> productList;
+
+	private ObservableList<ProductOrder> orderProducts;
+
+	private User user;
+
+	public ProductsController(User user) {
+		this.user = user;
+	}
+
+	@Override
+	public void initialize(URL arg0, ResourceBundle arg1) {
+		productService = new ProductService();
+		orderProducts = FXCollections.observableArrayList();
+
+		try {
+			productList = FXCollections.observableArrayList(productService.getAllProducts());
+		} catch (Exception e) {
+			e.printStackTrace();
+			MyLogger.log(Level.SEVERE, e.getMessage());
+		}
+
+		idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+		nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+		priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
+		quantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+
+		productsTable.getItems().clear();
+		productsTable.setItems(productList);
+
+		nameOrderItemColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+		quantityOrderItemColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+
+		orderTable.getItems().clear();
+		orderTable.setItems(orderProducts);
+
+		productsTable.setOnMouseClicked(event -> {
+			if (event.getClickCount() == 2) {
+				Product selectedProduct = productsTable.getSelectionModel().getSelectedItem();
+
+				if (selectedProduct != null) {
+					TextInputDialog dialog = new TextInputDialog();
+					dialog.setTitle("Unos količine");
+					dialog.setHeaderText("Unesite količinu za " + selectedProduct.getName());
+					dialog.setContentText("Količina:");
+
+					dialog.showAndWait().ifPresent(quantity -> {
+						try {
+							int quantityValue = Integer.parseInt(quantity);
+							if (quantityValue > selectedProduct.getQuantity()) {
+								throw new NumberFormatException();
+							}
+							orderProducts.add(new ProductOrder(selectedProduct.getId(), selectedProduct.getName(),
+									quantityValue));
+						} catch (NumberFormatException e) {
+							alert("Greška", "Nevalidna količina");
+							MyLogger.log(Level.WARNING, "Nevalidna količina");
+						}
+					});
+				}
+			}
+		});
+		PromotionController promotionThread = new PromotionController(promotionTextArea);
+		promotionThread.setDaemon(true);
+		promotionThread.start();
+	}
+
+	@FXML
+	void onOrderButton(ActionEvent event) {
+
+		for (ProductOrder productOrder : orderProducts) {
+			System.out.println(productOrder);
+		}
+		ArrayList<ProductOrder> tempProducts = new ArrayList<>(orderProducts);
+		Order order = new Order(user.getUsername(), user.getEmail(), tempProducts);
+
+		MQService mqService = new MQService();
+		try {
+			mqService.publishOrder(order);
+			orderProducts.clear();
+			orderTable.getItems().clear();
+		} catch (IOException | TimeoutException ex) {
+			alert("Greška", "Greška prilikom slanja narudžbe");
+			MyLogger.log(Level.WARNING, "Greška prilikom slanja narudžbe");
+		}
+
+	}
+
+	@FXML
+	void onRefreshButton(ActionEvent event) {
+		try {
+			productList.clear();
+			productList.setAll(productService.getAllProducts());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void alert(String title, String message) {
+		Alert alert = new Alert(Alert.AlertType.ERROR);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
+
+}

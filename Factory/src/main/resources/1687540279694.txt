@@ -1,0 +1,1 @@
+Order [userId=frke, userEmail=nemanjadj102@gmail.com, orderItems=[ProductOrder [name=Sladoled, quantity=1]], status=Prihvaćena]
